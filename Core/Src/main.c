@@ -927,10 +927,10 @@ void UpdateGame()
 	int16_t spd_joy_y = joystick[1];
 	int16_t spd_joy_x = joystick[0];
 
-	  spd_joy_x -= 32;
-	  spd_joy_y -= 32;
-	  spd_joy_x /= 10;
-	  spd_joy_y /= -10;
+	spd_joy_x -= 32;
+	spd_joy_y -= 32;
+	spd_joy_x /= 10;
+	spd_joy_y /= -10;
 
 	// Обробка введення та швидкості гравця
 	if (playerLife > 0 && ((ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed) || spd_joy_x !=0 || spd_joy_y != 0))
@@ -939,15 +939,15 @@ void UpdateGame()
 		int16_t spd_y;
 		if ((ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed))
 		{
-	  touch_y = 320 - touch_y;
-	  touch_x -= 48;
-	  touch_x -= 12;
+			touch_y = 320 - touch_y;
+			touch_x -= 48;
+			touch_x -= 12;
 
-	  spd_x = touch_x - player->x;
-	  spd_y = touch_y - player->y;
+			spd_x = touch_x - player->x;
+			spd_y = touch_y - player->y;
 
-	  spd_x /= (1 + abs(spd_x) / 4);
-	  spd_y /= (1 + abs(spd_y) / 4);
+			spd_x /= (1 + abs(spd_x) / 4);
+			spd_y /= (1 + abs(spd_y) / 4);
 		}
 		else
 		{
