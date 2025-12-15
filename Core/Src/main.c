@@ -811,6 +811,16 @@ void SpawnEnemy()
 		CreateObject(RandLehmer() % 216, 0, 20, 16, 0, 3, typeEnemy);
 }
 
+unsigned int DifficultyToTiming(uint16_t d)
+{
+	if (d > 30)
+		return 15;
+	if (d > 15)
+		return 25;
+	else
+		return 50;
+}
+
 void InitGame()
 {
 	UART_Printf("Game initialized!\r\n");
@@ -935,7 +945,7 @@ void UpdateGame()
 	ili9341_touch_pressed_t touchPressed = ili9341_touch_coordinate(lcd, &touch_x, &touch_y);
 
 	// Обробка введення та швидкості гравця
-	if (playerLife > 0 && ((touchPressed == itpPressed) || spd_joy_x !=0 || spd_joy_y != 0))
+	if (playerLife > 0 && ((touchPressed == itpPressed) || spd_joy_x != 0 || spd_joy_y != 0))
 	{
 		int16_t spd_x;
 		int16_t spd_y;
@@ -1017,7 +1027,7 @@ void UpdateGame()
 	}
 
 	// Створення об'єктів
-	if (frameCounter > 15 && frameCounter % (difficulty > 20 ? 25 : 50) == 0)
+	if (frameCounter > 15 && frameCounter % DifficultyToTiming(difficulty) == 0)
 	{
 		SpawnEnemy();
 		difficulty++;
