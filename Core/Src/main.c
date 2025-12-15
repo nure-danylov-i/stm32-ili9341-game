@@ -932,12 +932,14 @@ void UpdateGame()
 	spd_joy_x /= 10;
 	spd_joy_y /= -10;
 
+	ili9341_touch_pressed_t touchPressed = ili9341_touch_coordinate(lcd, &touch_x, &touch_y);
+
 	// Обробка введення та швидкості гравця
-	if (playerLife > 0 && ((ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed) || spd_joy_x !=0 || spd_joy_y != 0))
+	if (playerLife > 0 && ((touchPressed == itpPressed) || spd_joy_x !=0 || spd_joy_y != 0))
 	{
 		int16_t spd_x;
 		int16_t spd_y;
-		if ((ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed))
+		if (touchPressed == itpPressed)
 		{
 			touch_y = 320 - touch_y;
 			touch_x -= 48;
