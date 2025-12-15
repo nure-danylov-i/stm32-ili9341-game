@@ -221,7 +221,7 @@ ili9341_color_t color_bg_score = 0x0000;
 struct Object *player = {0};
 
 int8_t playerLife = 0;
-const int8_t playerLifeMax = 15;
+const int8_t playerLifeMax = 3;
 int8_t playerInvul = 0;
 
 uint8_t shootingEnemyPresent = 0;
@@ -924,35 +924,36 @@ void UpdateGame()
 	joystick[1] = HAL_ADC_GetValue(&hadc4);
 	HAL_ADC_Stop(&hadc4);
 
+	int16_t spd_joy_y = joystick[1];
+	int16_t spd_joy_x = joystick[0];
 
-	//UART_Printf("%lu cpf; x:%lu, y:%lu\n", num_adc_convs, joystick[0], joystick[1]);
-	num_adc_convs = 0;
-	if (joystick[0] > 50)
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
-	else
-		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
+	  spd_joy_x -= 32;
+	  spd_joy_y -= 32;
+	  spd_joy_x /= 10;
+	  spd_joy_y /= -10;
 
 	// Обробка введення та швидкості гравця
-	if (playerLife > 0 /*&& ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed*/)
+	if (playerLife > 0 && ((ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed) || spd_joy_x !=0 || spd_joy_y != 0))
 	{
+		int16_t spd_x;
+		int16_t spd_y;
+		if ((ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed))
+		{
 	  touch_y = 320 - touch_y;
 	  touch_x -= 48;
 	  touch_x -= 12;
 
-	  int16_t spd_x = touch_x - player->x;
-	  int16_t spd_y = touch_y - player->y;
+	  spd_x = touch_x - player->x;
+	  spd_y = touch_y - player->y;
 
 	  spd_x /= (1 + abs(spd_x) / 4);
 	  spd_y /= (1 + abs(spd_y) / 4);
-
-	  spd_x = joystick[0];
-	  spd_y = joystick[1];
-	  spd_x -= 32;
-	  spd_y -= 32;
-	  spd_x /= 10;
-	  spd_y /= 10;
-
-
+		}
+		else
+		{
+			spd_x = spd_joy_x;
+			spd_y = spd_joy_y;
+		}
 
 	  UART_Printf("spd_x: %d, spd_y: %d\r\n", spd_x, spd_y);
 
@@ -1027,6 +1028,12 @@ void UpdateGame()
 	{
 		CreateObject(RandLehmer() % 216, 0, 16, 16, 0, 2, typeHeart);
 	}
+
+	if (player->y > lcd->screen_size.height - player->h)
+		player->y = lcd->screen_size.height - player->h;
+
+	if (player->y < 21)
+		player->y = 21;
 
 	for (int i = 0; i < MAX_OBJECTS; i++)
 	{
