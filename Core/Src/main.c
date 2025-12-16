@@ -101,7 +101,7 @@ enum SoundType
 
 enum GameState
 {
-	gsSplashScreen, gsPlaying, gsGameOver
+	gsSplashScreen, gsWait, gsPlaying, gsGameOver
 };
 
 struct Object {
@@ -230,6 +230,7 @@ struct Object *player = {0};
 int8_t playerLife = 0;
 const int8_t playerLifeMax = 3;
 int8_t playerInvul = 0;
+uint8_t wait = 0;
 
 uint8_t shootingEnemyPresent = 0;
 
@@ -264,7 +265,8 @@ void InitGame();
 void RestartGame();
 void EndGame();
 void UpdateGame();
-uint8_t WaitForButton();
+void DrawButton(uint16_t y, char str[], uint8_t pressed);
+uint8_t WaitForButton(uint16_t y);
 void SplashScreen();
 
 void UART_Printf(const char* fmt, ...)
@@ -284,8 +286,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if (gameState == gsSplashScreen)
 		{
-			if (WaitForButton())
+			if (WaitForButton(240))
 			{
+				DrawButton(240, "Play", 1);
+				gameState = gsWait;
+			}
+		}
+		else if (gameState == gsWait)
+		{
+			wait++;
+			if (wait >= 5)
+			{
+				wait = 0;
 				InitGame();
 				gameState = gsPlaying;
 			}
@@ -302,15 +314,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		else if (gameState == gsGameOver)
 		{
 			gameOver++;
-			if (gameOver >= 1500)
+			if (gameOver >= 750)
 			{
 				SplashScreen();
 				gameState = gsSplashScreen;
 			}
-			if (WaitForButton())
+			if (WaitForButton(200))
 			{
-				InitGame();
-				gameState = gsPlaying;
+				DrawButton(200, "Play again", 1);
+				gameState = gsWait;
 			}
 		}
 		if (__HAL_TIM_GET_FLAG(htim, TIM_FLAG_UPDATE))
@@ -920,8 +932,7 @@ void EndGame()
 	text_attr.origin_x = 40;
 
 	char str[20] = {0};
-	sprintf(str, "GAME OVER!");
-	ili9341_draw_string(lcd, text_attr, str);
+	ili9341_draw_string(lcd, text_attr, "GAME OVER!");
 
 	text_attr.font = &ili9341_font_11x18;
 	text_attr.origin_y = 150;
@@ -929,12 +940,12 @@ void EndGame()
 	sprintf(str, "score: %07u", score);
 	ili9341_draw_string(lcd, text_attr, str);
 
-	text_attr.origin_y = 210;
-	text_attr.origin_x = 65;
-	sprintf(str, "Play again");
-	ili9341_draw_string(lcd, text_attr, str);
-
-	ili9341_draw_rect(lcd, ILI9341_WHITE, 55, 200, 130, 38);
+//	text_attr.origin_y = 210;
+//	text_attr.origin_x = 65;;
+//	ili9341_draw_string(lcd, text_attr, str);
+//
+//	ili9341_draw_rect(lcd, ILI9341_WHITE, 55, 200, 130, 38);
+	DrawButton(200, "Play again", 0);
 
 	PlaySound(soundGameEnd);
 
@@ -1136,13 +1147,31 @@ void UpdateGame()
 	frameCounter++;
 }
 
-uint8_t WaitForButton()
+void DrawButton(uint16_t y, char str[], uint8_t pressed)
+{
+	ili9341_text_attr_t text_attr = {0};
+	text_attr.bg_color = pressed ? ILI9341_GREEN : color_bg_score;
+	text_attr.fg_color = ILI9341_WHITE;
+	text_attr.font = &ili9341_font_11x18;
+	text_attr.origin_y = y + 10;
+	text_attr.origin_x = 120 - (strlen(str) * 11) / 2;
+
+	if (pressed)
+	{
+		ili9341_fill_rect(lcd, ILI9341_GREEN, 55, y, 130, 38);
+	}
+
+	ili9341_draw_rect(lcd, ILI9341_WHITE, 55, y, 130, 38);
+	ili9341_draw_string(lcd, text_attr, str);
+}
+
+uint8_t WaitForButton(uint16_t y)
 {
 	if (ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
 	{
 		touch_y = 320 - touch_y;
 		touch_x -= 48;
-		if (touch_x > 55 && touch_x < 185 && touch_y > 240 && touch_y < 278)
+		if (touch_x > 55 && touch_x < 185 && touch_y > y && touch_y < y + 38)
 		{
 			return 1;
 		}
@@ -1155,7 +1184,7 @@ void SplashScreen()
 {
 	ili9341_fill_screen(lcd, ILI9341_BLACK);
 
-		char str[20] = {0};
+		//char str[20] = {0};
 
 		ili9341_text_attr_t text_attr = {0};
 		text_attr.bg_color = color_bg_score;
@@ -1163,18 +1192,17 @@ void SplashScreen()
 		text_attr.font = &ili9341_font_11x18;
 		text_attr.origin_y = 54;
 		text_attr.origin_x = 15;
-		sprintf(str, "STM32 SPACE SHOOTER");
-		ili9341_draw_string(lcd, text_attr, str);
+		//sprintf(str, "STM32 SPACE SHOOTER");
+		ili9341_draw_string(lcd, text_attr, "STM32 SPACE SHOOTER");
 
 		ili9341_my_draw_bmp_2b(lcd, ILI9341_WHITE, color_bg, ILI9341_LIGHTGREY, ILI9341_DARKGREY,
 							56, 108, 128, 80, bitmap_logo, 0);
 
-		text_attr.origin_y = 250;
-		text_attr.origin_x = 98;
-		sprintf(str, "Play");
-		ili9341_draw_string(lcd, text_attr, str);
-
-		ili9341_draw_rect(lcd, ILI9341_WHITE, 55, 240, 130, 38);
+//		text_attr.origin_y = 250;
+//		text_attr.origin_x = 98;
+//		sprintf(str, "Play");
+//		ili9341_draw_string(lcd, text_attr, str);
+		DrawButton(240, "Play", 0);
 
 		//HAL_TIM_Base_Stop_IT(&htim6);
 
