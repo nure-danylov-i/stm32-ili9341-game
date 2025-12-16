@@ -214,6 +214,7 @@ uint16_t touch_x = 0;
 uint16_t touch_y = 0;
 int8_t test_var = 0;
 unsigned int score = 0;
+unsigned int highscore = 0;
 uint16_t difficulty = 0;
 uint8_t pause = 0;
 uint16_t gameOver = 0;
@@ -268,6 +269,7 @@ void UpdateGame();
 void DrawButton(uint16_t y, char str[], uint8_t pressed);
 uint8_t WaitForButton(uint16_t y);
 void SplashScreen();
+void DrawHighscore();
 
 void UART_Printf(const char* fmt, ...)
 {
@@ -286,9 +288,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if (gameState == gsSplashScreen)
 		{
-			if (WaitForButton(240))
+			if (WaitForButton(220))
 			{
-				DrawButton(240, "Play", 1);
+				DrawButton(220, "Play", 1);
 				gameState = gsWait;
 			}
 		}
@@ -918,6 +920,13 @@ void EndGame()
 	//HAL_TIM_Base_Stop_IT(&htim6);
 	UART_Printf("Game over! Score: %07u\r\n", score);
 
+	uint8_t newHigh = 0;
+	if (score > highscore)
+	{
+		newHigh = 1;
+		highscore = score;
+	}
+
 	for (int i = 0; i < MAX_OBJECTS; i++)
 		if (objects[i].alive)
 			DeleteObject(&objects[i]);
@@ -926,14 +935,15 @@ void EndGame()
 
 	ili9341_text_attr_t text_attr = {0};
 	text_attr.bg_color = color_bg_score;
-	text_attr.fg_color = ILI9341_WHITE;
-	text_attr.font = &ili9341_font_16x26;
+	text_attr.fg_color = newHigh ? ILI9341_YELLOW : ILI9341_WHITE;
+	text_attr.font = /* newHigh ? &ili9341_font_11x18 : */ &ili9341_font_16x26;
 	text_attr.origin_y = 120;
-	text_attr.origin_x = 40;
+	text_attr.origin_x = newHigh ? 8 : 40;
 
 	char str[20] = {0};
-	ili9341_draw_string(lcd, text_attr, "GAME OVER!");
+	ili9341_draw_string(lcd, text_attr, newHigh ? "NEW HIGHSCORE!" : "GAME OVER!");
 
+	text_attr.fg_color = ILI9341_WHITE;
 	text_attr.font = &ili9341_font_11x18;
 	text_attr.origin_y = 150;
 	text_attr.origin_x = 43;
@@ -947,7 +957,19 @@ void EndGame()
 //	ili9341_draw_rect(lcd, ILI9341_WHITE, 55, 200, 130, 38);
 	DrawButton(200, "Play again", 0);
 
-	PlaySound(soundGameEnd);
+	if (newHigh == 0)
+	{
+		DrawHighscore();
+	}
+
+	if (newHigh == 0)
+	{
+		PlaySound(soundGameEnd);
+	}
+	else
+	{
+		PlaySound(soundPickup);
+	}
 
 //	while (1)
 //	{
@@ -1180,11 +1202,23 @@ uint8_t WaitForButton(uint16_t y)
 	return 0;
 }
 
+void DrawHighscore()
+{
+	char str[20] = {0};
+
+	ili9341_text_attr_t text_attr = {0};
+	text_attr.bg_color = color_bg_score;
+	text_attr.fg_color = ILI9341_DARKGREY;
+	text_attr.font = &ili9341_font_11x18;
+	sprintf(str, "highscore: %07u", highscore);
+	text_attr.origin_y = 290;
+	text_attr.origin_x = 120 - (strlen(str) * 11) / 2;
+	ili9341_draw_string(lcd, text_attr, str);
+}
+
 void SplashScreen()
 {
 	ili9341_fill_screen(lcd, ILI9341_BLACK);
-
-		//char str[20] = {0};
 
 		ili9341_text_attr_t text_attr = {0};
 		text_attr.bg_color = color_bg_score;
@@ -1192,25 +1226,18 @@ void SplashScreen()
 		text_attr.font = &ili9341_font_11x18;
 		text_attr.origin_y = 54;
 		text_attr.origin_x = 15;
-		//sprintf(str, "STM32 SPACE SHOOTER");
 		ili9341_draw_string(lcd, text_attr, "STM32 SPACE SHOOTER");
 
 		ili9341_my_draw_bmp_2b(lcd, ILI9341_WHITE, color_bg, ILI9341_LIGHTGREY, ILI9341_DARKGREY,
 							56, 108, 128, 80, bitmap_logo, 0);
 
-//		text_attr.origin_y = 250;
-//		text_attr.origin_x = 98;
-//		sprintf(str, "Play");
-//		ili9341_draw_string(lcd, text_attr, str);
-		DrawButton(240, "Play", 0);
+		DrawButton(220, "Play", 0);
 
-		//HAL_TIM_Base_Stop_IT(&htim6);
+		if (highscore != 0)
+		{
+			DrawHighscore();
+		}
 
-//		ili9341_fill_rect(lcd, ILI9341_GREEN, 55, 240, 130, 38);
-//		text_attr.bg_color = ILI9341_GREEN;
-//		ili9341_draw_string(lcd, text_attr, str);
-
-//		HAL_Delay(200);
 }
 
 /* USER CODE END 0 */
