@@ -99,6 +99,11 @@ enum SoundType
 	soundGameStart, soundGameEnd, soundShot, soundExplosion, soundDamage, soundPickup, soundPlayerExplosion, soundPause
 };
 
+enum GameState
+{
+	gsSplashScreen, gsPlaying, gsGameOver
+};
+
 struct Object {
 	int16_t x;
 	int16_t y;
@@ -112,6 +117,8 @@ struct Object {
 	int8_t state;
 	enum ObjectType type;
 };
+
+enum GameState gameState;
 
 const int8_t enemySpeeds[8] = {
 		-2, -1, 0, 0, 1, 2, 0, 0
@@ -209,7 +216,7 @@ int8_t test_var = 0;
 unsigned int score = 0;
 uint16_t difficulty = 0;
 uint8_t pause = 0;
-uint8_t gameOver = 0;
+uint16_t gameOver = 0;
 int8_t score_upd_flag = 0;
 int8_t life_upd_flag = 0;
 
@@ -232,7 +239,6 @@ int objectCount;
 unsigned int frameCounter;
 
 uint32_t joystick[2];
-uint32_t num_adc_convs = 0;
 
 void UART_Printf(const char* fmt, ...);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
@@ -258,6 +264,8 @@ void InitGame();
 void RestartGame();
 void EndGame();
 void UpdateGame();
+uint8_t WaitForButton();
+void SplashScreen();
 
 void UART_Printf(const char* fmt, ...)
 {
@@ -274,7 +282,37 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if(htim->Instance == TIM6)
 	{
-		UpdateGame();
+		if (gameState == gsSplashScreen)
+		{
+			if (WaitForButton())
+			{
+				InitGame();
+				gameState = gsPlaying;
+			}
+		}
+		else if (gameState == gsPlaying)
+		{
+			UpdateGame();
+			if (gameOver >= 75)
+			{
+				EndGame();
+				gameState = gsGameOver;
+			}
+		}
+		else if (gameState == gsGameOver)
+		{
+			gameOver++;
+			if (gameOver >= 1500)
+			{
+				SplashScreen();
+				gameState = gsSplashScreen;
+			}
+			if (WaitForButton())
+			{
+				InitGame();
+				gameState = gsPlaying;
+			}
+		}
 		if (__HAL_TIM_GET_FLAG(htim, TIM_FLAG_UPDATE))
 		{
 			UART_Printf("Timer overrun - UpdateGame() too slow!\r\n");
@@ -865,7 +903,7 @@ void RestartGame()
 
 void EndGame()
 {
-	HAL_TIM_Base_Stop_IT(&htim6);
+	//HAL_TIM_Base_Stop_IT(&htim6);
 	UART_Printf("Game over! Score: %07u\r\n", score);
 
 	for (int i = 0; i < MAX_OBJECTS; i++)
@@ -900,26 +938,26 @@ void EndGame()
 
 	PlaySound(soundGameEnd);
 
-	while (1)
-	{
-		if (ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
-		{
-			touch_y = 320 - touch_y;
-			touch_x -= 48;
-			if (touch_x > 55 && touch_x < 185 && touch_y > 200 && touch_y < 238)
-			{
-				break;
-			}
-		}
-	}
+//	while (1)
+//	{
+//		if (ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
+//		{
+//			touch_y = 320 - touch_y;
+//			touch_x -= 48;
+//			if (touch_x > 55 && touch_x < 185 && touch_y > 200 && touch_y < 238)
+//			{
+//				break;
+//			}
+//		}
+//	}
 
-	ili9341_fill_rect(lcd, ILI9341_GREEN, 55, 200, 130, 38);
-	text_attr.bg_color = ILI9341_GREEN;
-	ili9341_draw_string(lcd, text_attr, str);
+//	ili9341_fill_rect(lcd, ILI9341_GREEN, 55, 200, 130, 38);
+//	text_attr.bg_color = ILI9341_GREEN;
+//	ili9341_draw_string(lcd, text_attr, str);
 
-	HAL_Delay(200);
-
-	RestartGame();
+//	HAL_Delay(200);
+//
+//	RestartGame();
 }
 
 void UpdateGame()
@@ -1091,12 +1129,60 @@ void UpdateGame()
 		if(gameOver >= 75)
 		{
 			gameOver = 75;
-			EndGame();
 		}
 
 	}
 
 	frameCounter++;
+}
+
+uint8_t WaitForButton()
+{
+	if (ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
+	{
+		touch_y = 320 - touch_y;
+		touch_x -= 48;
+		if (touch_x > 55 && touch_x < 185 && touch_y > 240 && touch_y < 278)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+void SplashScreen()
+{
+	ili9341_fill_screen(lcd, ILI9341_BLACK);
+
+		char str[20] = {0};
+
+		ili9341_text_attr_t text_attr = {0};
+		text_attr.bg_color = color_bg_score;
+		text_attr.fg_color = ILI9341_WHITE;
+		text_attr.font = &ili9341_font_11x18;
+		text_attr.origin_y = 54;
+		text_attr.origin_x = 15;
+		sprintf(str, "STM32 SPACE SHOOTER");
+		ili9341_draw_string(lcd, text_attr, str);
+
+		ili9341_my_draw_bmp_2b(lcd, ILI9341_WHITE, color_bg, ILI9341_LIGHTGREY, ILI9341_DARKGREY,
+							56, 108, 128, 80, bitmap_logo, 0);
+
+		text_attr.origin_y = 250;
+		text_attr.origin_x = 98;
+		sprintf(str, "Play");
+		ili9341_draw_string(lcd, text_attr, str);
+
+		ili9341_draw_rect(lcd, ILI9341_WHITE, 55, 240, 130, 38);
+
+		//HAL_TIM_Base_Stop_IT(&htim6);
+
+//		ili9341_fill_rect(lcd, ILI9341_GREEN, 55, 240, 130, 38);
+//		text_attr.bg_color = ILI9341_GREEN;
+//		ili9341_draw_string(lcd, text_attr, str);
+
+//		HAL_Delay(200);
 }
 
 /* USER CODE END 0 */
@@ -1158,51 +1244,11 @@ int main(void)
   __HAL_TIM_CLEAR_FLAG(&htim6, TIM_SR_UIF);
   __HAL_TIM_CLEAR_FLAG(&htim7, TIM_SR_UIF);
 
-	ili9341_fill_screen(lcd, ILI9341_BLACK);
+  	gameState = gsSplashScreen;
 
-	char str[20] = {0};
+	SplashScreen();
 
-	ili9341_text_attr_t text_attr = {0};
-	text_attr.bg_color = color_bg_score;
-	text_attr.fg_color = ILI9341_WHITE;
-	text_attr.font = &ili9341_font_11x18;
-	text_attr.origin_y = 54;
-	text_attr.origin_x = 15;
-	sprintf(str, "STM32 SPACE SHOOTER");
-	ili9341_draw_string(lcd, text_attr, str);
-
-	ili9341_my_draw_bmp_2b(lcd, ILI9341_WHITE, color_bg, ILI9341_LIGHTGREY, ILI9341_DARKGREY,
-						56, 108, 128, 80, bitmap_logo, 0);
-
-	text_attr.origin_y = 250;
-	text_attr.origin_x = 98;
-	sprintf(str, "Play");
-	ili9341_draw_string(lcd, text_attr, str);
-
-	ili9341_draw_rect(lcd, ILI9341_WHITE, 55, 240, 130, 38);
-
-	HAL_TIM_Base_Stop_IT(&htim6);
-
-	while (1)
-	{
-		if (ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
-		{
-			touch_y = 320 - touch_y;
-			touch_x -= 48;
-			if (touch_x > 55 && touch_x < 185 && touch_y > 240 && touch_y < 278)
-			{
-				break;
-			}
-		}
-	}
-
-	ili9341_fill_rect(lcd, ILI9341_GREEN, 55, 240, 130, 38);
-	text_attr.bg_color = ILI9341_GREEN;
-	ili9341_draw_string(lcd, text_attr, str);
-
-	HAL_Delay(200);
-
-	InitGame();
+	//InitGame();
 	HAL_TIM_Base_Start_IT(&htim6);
 
   /* USER CODE END 2 */
