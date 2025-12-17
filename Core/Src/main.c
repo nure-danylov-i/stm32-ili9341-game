@@ -917,7 +917,6 @@ void RestartGame()
 
 void EndGame()
 {
-	//HAL_TIM_Base_Stop_IT(&htim6);
 	UART_Printf("Game over! Score: %07u\r\n", score);
 
 	uint8_t newHigh = 0;
@@ -950,11 +949,6 @@ void EndGame()
 	sprintf(str, "score: %07u", score);
 	ili9341_draw_string(lcd, text_attr, str);
 
-//	text_attr.origin_y = 210;
-//	text_attr.origin_x = 65;;
-//	ili9341_draw_string(lcd, text_attr, str);
-//
-//	ili9341_draw_rect(lcd, ILI9341_WHITE, 55, 200, 130, 38);
 	DrawButton(200, "Play again", 0);
 
 	if (newHigh == 0)
@@ -971,26 +965,6 @@ void EndGame()
 		PlaySound(soundPickup);
 	}
 
-//	while (1)
-//	{
-//		if (ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
-//		{
-//			touch_y = 320 - touch_y;
-//			touch_x -= 48;
-//			if (touch_x > 55 && touch_x < 185 && touch_y > 200 && touch_y < 238)
-//			{
-//				break;
-//			}
-//		}
-//	}
-
-//	ili9341_fill_rect(lcd, ILI9341_GREEN, 55, 200, 130, 38);
-//	text_attr.bg_color = ILI9341_GREEN;
-//	ili9341_draw_string(lcd, text_attr, str);
-
-//	HAL_Delay(200);
-//
-//	RestartGame();
 }
 
 void UpdateGame()
