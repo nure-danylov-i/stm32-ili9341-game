@@ -1,35 +1,15 @@
 #include "sound.h"
-#include <stdlib.h>
+#include <stdlib.h> // rand()
 
-const int8_t enemySpeeds[8] = {
-		-2, -1, 0, 0, 1, 2, 0, 0
+struct SoundConfig
+{
+	uint8_t init;
+	DAC_HandleTypeDef *hdac;
+	uint32_t channel;
+	TIM_HandleTypeDef *htim;
 };
 
-const int8_t enemyCircleSpeeds[25] = {
-		0, 0,
-		1, 1, 1,
-		2, 2, 2,
-		3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-		2, 2, 2,
-		1, 1, 1,
-		0,
-};
-
-const int8_t enemyCircleSpeedsY[50] = {
-		3, 3, 3, 3, 3,
-		2, 2, 2, 2,
-		1, 1, 1,
-		0, 0,
-		-1, -1, -1,
-		-2, -2, -2, -2,
-		-3, -3, -3, -3, -3, -3, -3, -3, -3,
-		-2, -2, -2, -2,
-		-1, -1, -1,
-		0, 0,
-		1, 1, 1,
-		2, 2, 2, 2,
-		3, 3, 3, 3,
-};
+static struct SoundConfig config = {0};
 
 const uint16_t tuneGameEnd[40] = {
     500, 500, 500, 500, 0,
@@ -83,7 +63,27 @@ uint16_t soundWaveformPickup[SOUND_PICKUP_LENGTH];
 
 enum SoundType previousSound = soundGameStart;
 
-void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length)
+static void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length);
+static void GenerateSounds();
+
+uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *htim)
+{
+	if (config.init == 1)
+	{
+		return 0;
+	}
+
+	config.hdac = hdac;
+	config.channel = channel;
+	config.htim = htim;
+
+	GenerateSounds();
+
+	config.init = 1;
+	return 1;
+}
+
+static void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length)
 {
 	  for (int i = 0; i < length; i++)
 	  {
@@ -105,7 +105,7 @@ void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int len
 
 }
 
-void GenerateSounds()
+static void GenerateSounds()
 {
 	  for (int i = 0; i < SOUND_EXPLOSION_LENGTH; i++)
 	  {
@@ -131,39 +131,45 @@ void GenerateSounds()
 
 void PlaySound(enum SoundType sound)
 {
+	if (config.init == 0)
+	{
+		return;
+	}
+
 	if (!(sound == soundShot || previousSound == soundPlayerExplosion))
 	{
-		HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-		HAL_TIM_Base_Stop(&htim7);
+		HAL_DAC_Stop_DMA(config.hdac, config.channel);
+		HAL_TIM_Base_Stop(config.htim);
 	}
 
 	switch(sound)
 	{
 	case soundShot:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWaveformShot, SOUND_SHOT_LENGTH, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformShot, SOUND_SHOT_LENGTH, DAC_ALIGN_12B_R);
 		break;
 	case soundExplosion:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWaveformExplosion, SOUND_EXPLOSION_LENGTH / 3, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformExplosion, SOUND_EXPLOSION_LENGTH / 3, DAC_ALIGN_12B_R);
 		break;
 	case soundPlayerExplosion:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWaveformExplosion, SOUND_EXPLOSION_LENGTH, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformExplosion, SOUND_EXPLOSION_LENGTH, DAC_ALIGN_12B_R);
 		break;
 	case soundDamage:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWaveformDamage, SOUND_DAMAGE_LENGTH, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformDamage, SOUND_DAMAGE_LENGTH, DAC_ALIGN_12B_R);
 		break;
 	case soundGameStart:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWavefromGameStart, SOUND_GAMESTART_LENGTH, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWavefromGameStart, SOUND_GAMESTART_LENGTH, DAC_ALIGN_12B_R);
 		break;
 	case soundGameEnd:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWaveformGameEnd, SOUND_GAMEEND_LENGTH, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformGameEnd, SOUND_GAMEEND_LENGTH, DAC_ALIGN_12B_R);
 		break;
 	case soundPickup:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWaveformPickup, SOUND_PICKUP_LENGTH, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformPickup, SOUND_PICKUP_LENGTH, DAC_ALIGN_12B_R);
 		break;
 	case soundPause:
-		HAL_DAC_Start_DMA(&hdac1, DAC_CHANNEL_1, (uint32_t*)soundWaveformPause, SOUND_PAUSE_LENGTH, DAC_ALIGN_12B_R);
+		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformPause, SOUND_PAUSE_LENGTH, DAC_ALIGN_12B_R);
 		break;
 	}
-	HAL_TIM_Base_Start(&htim7);
+	HAL_TIM_Base_Start(config.htim);
 	previousSound = sound;
+
 }

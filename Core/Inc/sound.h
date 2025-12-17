@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include <stm32f3xx_hal.h>
+
 #define SOUND_SAMPLES 1000
 
 #define SOUND_SHOT_LENGTH 1200
@@ -25,8 +27,7 @@ enum SoundType
 	soundPause
 };
 
-void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length);
-void GenerateSounds();
+uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *htim);
 void PlaySound(enum SoundType sound);
 
 #endif /* INC_SOUND_H_ */

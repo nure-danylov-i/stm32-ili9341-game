@@ -115,6 +115,35 @@ struct Object {
 
 enum GameState gameState;
 
+const int8_t enemySpeeds[8] = {
+		-2, -1, 0, 0, 1, 2, 0, 0
+};
+
+const int8_t enemyCircleSpeeds[25] = {
+		0, 0,
+		1, 1, 1,
+		2, 2, 2,
+		3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		2, 2, 2,
+		1, 1, 1,
+		0,
+};
+
+const int8_t enemyCircleSpeedsY[50] = {
+		3, 3, 3, 3, 3,
+		2, 2, 2, 2,
+		1, 1, 1,
+		0, 0,
+		-1, -1, -1,
+		-2, -2, -2, -2,
+		-3, -3, -3, -3, -3, -3, -3, -3, -3,
+		-2, -2, -2, -2,
+		-1, -1, -1,
+		0, 0,
+		1, 1, 1,
+		2, 2, 2, 2,
+		3, 3, 3, 3,
+};
 
 uint16_t touch_x = 0;
 uint16_t touch_y = 0;
@@ -831,8 +860,6 @@ void UpdateGame()
 			spd_y = spd_joy_y;
 		}
 
-	  UART_Printf("spd_x: %d, spd_y: %d\r\n", spd_x, spd_y);
-
 	  player->vx = spd_x;
 	  player->vy = spd_y;
 
@@ -1087,7 +1114,7 @@ int main(void)
 
   ili9341_calibrate_scalar(lcd, 400, 409, 3875, 3763);
 
-  GenerateSounds();
+  InitSound(&hdac1, DAC_CHANNEL_1, &htim7);
 
   __HAL_TIM_CLEAR_FLAG(&htim6, TIM_SR_UIF);
   __HAL_TIM_CLEAR_FLAG(&htim7, TIM_SR_UIF);
