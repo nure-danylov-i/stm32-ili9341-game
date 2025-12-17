@@ -54,6 +54,12 @@ const uint16_t tunePause[14] = {
 	1000, 1000, 0, 0, 800, 800
 };
 
+const struct Recipe sfxShot[3] = {
+		{ waveSquare, 1000, 0.05f },
+		{ waveSquare, 500, 0.05f },
+		{ waveSquare, 250, 0.05f }
+};
+
 //uint16_t soundWaveformShot[SOUND_SHOT_LENGTH];
 //uint16_t soundWaveformPause[SOUND_PAUSE_LENGTH];
 //uint16_t soundWaveformExplosion[SOUND_EXPLOSION_LENGTH];
@@ -68,11 +74,6 @@ enum SoundType previousSound = soundGameStart;
 
 struct Oscilator osc = {0};
 
-struct Voice voice = {0};
-
-struct SFX sfx[7] = {0};
-
-static void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length);
 static void GenerateSounds();
 
 uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *htim)
@@ -89,31 +90,10 @@ uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *
 	GenerateSounds();
 
 	HAL_DAC_Start(config.hdac, config.channel);
+	HAL_TIM_Base_Start_IT(config.htim);
 
 	config.init = 1;
 	return 1;
-}
-
-static void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length)
-{
-	  for (int i = 0; i < length; i++)
-	  {
-	      int idx = i / 200;
-	      int freq = tune[idx];
-
-	      if (freq == 0) {
-	    	  waveform[i] = 0;
-	    	  continue;
-	      }
-
-	      if ((i / (8000 / freq / 2) ) % 2 == 0)
-	      {
-	    	  waveform[i] = 4095;
-	      }
-	      else
-	    	  waveform[i] = 0;
-	  }
-
 }
 
 static void GenerateSounds()
@@ -145,21 +125,25 @@ static void GenerateSounds()
 
 void SoundCallback()
 {
-	uint16_t freq = 440;
-	osc.active = 1;
-
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
-
-	osc.increment = freq * WAVETABLE_LENGTH / SAMPLE_RATE;
 
 	uint16_t outputValue = 0;
 	if (osc.active) {
+
+		osc.increment = osc.frequency * WAVETABLE_LENGTH / SAMPLE_RATE;
+
 		int index = (int)osc.phase;
 		outputValue = SquareWavetable[index];
 		osc.phase += osc.increment;
 
 		if (osc.phase >= WAVETABLE_LENGTH) {
 			osc.phase -= WAVETABLE_LENGTH;
+		}
+
+		osc.samplesLeft -= 1;
+		if (osc.samplesLeft == 0)
+		{
+			osc.active = 0;
 		}
 	}
 
@@ -173,7 +157,16 @@ void PlaySound(enum SoundType sound)
 		return;
 	}
 
-	HAL_TIM_Base_Start_IT(config.htim);
+	if (osc.active)
+		return;
+
+	struct Recipe recipe = sfxShot[0];
+
+	osc.frequency = recipe.frequency;
+	osc.samplesLeft = recipe.durationSec * SAMPLE_RATE;
+
+	osc.active = 1;
+
 	return;
 
 //	if (!(sound == soundShot || previousSound == soundPlayerExplosion))

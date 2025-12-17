@@ -30,21 +30,23 @@ enum SoundType
 	soundPause
 };
 
+enum WaveType {
+	waveSquare = 0,
+	waveNoise
+};
+
 struct Oscilator {
+	float frequency;
 	float phase;
 	float increment;
 	uint8_t active;
+	uint32_t samplesLeft;
 };
 
-struct Voice {
-	uint8_t active;
-	uint32_t currentSample;
-	uint32_t totalSamples;
-};
-
-struct SFX {
-	uint16_t *tune;
-	uint16_t tuneLength;
+struct Recipe {
+	enum WaveType waveType;
+	float frequency;
+	float durationSec;
 };
 
 uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *htim);
