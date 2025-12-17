@@ -216,7 +216,7 @@ void UART_Printf(const char* fmt, ...)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	if(htim->Instance == TIM6)
+	if (htim->Instance == TIM6)
 	{
 		if (gameState == gsSplashScreen)
 		{
@@ -263,6 +263,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		{
 			UART_Printf("Timer overrun - UpdateGame() too slow!\r\n");
 		}
+	}
+	else if (htim->Instance == TIM7)
+	{
+		SoundCallback();
 	}
 }
 
@@ -1338,7 +1342,7 @@ static void MX_DAC1_Init(void)
 
   /** DAC channel OUT1 config
   */
-  sConfig.DAC_Trigger = DAC_TRIGGER_T7_TRGO;
+  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
   sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
   if (HAL_DAC_ConfigChannel(&hdac1, &sConfig, DAC_CHANNEL_1) != HAL_OK)
   {
