@@ -833,7 +833,7 @@ void UpdateGame()
 	spd_joy_x -= 32;
 	spd_joy_y -= 32;
 	spd_joy_x /= 10;
-	spd_joy_y /= -10;
+	spd_joy_y /= 10;
 
 	ili9341_touch_pressed_t touchPressed = ili9341_touch_coordinate(lcd, &touch_x, &touch_y);
 
