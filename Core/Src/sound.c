@@ -81,6 +81,7 @@ struct SFX sfx[2] = {0};
 //uint16_t soundWaveformPickup[SOUND_PICKUP_LENGTH];
 
 uint16_t SquareWavetable[WAVETABLE_LENGTH];
+uint16_t NoiseWavetable[WAVETABLE_LENGTH];
 
 enum SoundType previousSound = soundGameStart;
 
@@ -114,6 +115,7 @@ static void GenerateSounds()
 	  for (uint16_t i = 0; i < WAVETABLE_LENGTH; i++)
 	  {
 		  SquareWavetable[i] = (i < (WAVETABLE_LENGTH >> 1)) ? 0 : 0xFFF;
+		  NoiseWavetable[i] = rand() % 4095;
 	  }
 
 //		soundGameStart = 0,
