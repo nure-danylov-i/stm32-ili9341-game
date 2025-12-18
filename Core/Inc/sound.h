@@ -35,18 +35,26 @@ enum WaveType {
 	waveNoise
 };
 
+struct Recipe {
+	enum WaveType waveType;
+	float frequency;
+	float durationSec;
+};
+
+struct SFX {
+	const struct Recipe *recipes;
+	uint16_t recipeCount;
+};
+
+
 struct Oscilator {
 	float frequency;
 	float phase;
 	float increment;
 	uint8_t active;
 	uint32_t samplesLeft;
-};
-
-struct Recipe {
-	enum WaveType waveType;
-	float frequency;
-	float durationSec;
+	struct SFX *sfx;
+	uint16_t recipeCurrent;
 };
 
 uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *htim);

@@ -54,11 +54,23 @@ const uint16_t tunePause[14] = {
 	1000, 1000, 0, 0, 800, 800
 };
 
+const struct Recipe sfxGameStart[13] = {
+		{ waveSquare, 200, 0.1 }, {waveSquare, 0, 0.025},
+		{ waveSquare, 400, 0.1 }, {waveSquare, 0, 0.025},
+		{ waveSquare, 500, 0.1 }, {waveSquare, 0, 0.025},
+		{ waveSquare, 200, 0.1 }, {waveSquare, 0, 0.025},
+		{ waveSquare, 400, 0.1 }, {waveSquare, 0, 0.025},
+		{ waveSquare, 500, 0.1 }, {waveSquare, 0, 0.025},
+		{ waveSquare, 800, 0.25 }
+};
+
 const struct Recipe sfxShot[3] = {
 		{ waveSquare, 1000, 0.05f },
 		{ waveSquare, 500, 0.05f },
 		{ waveSquare, 250, 0.05f }
 };
+
+struct SFX sfx[2] = {0};
 
 //uint16_t soundWaveformShot[SOUND_SHOT_LENGTH];
 //uint16_t soundWaveformPause[SOUND_PAUSE_LENGTH];
@@ -113,12 +125,10 @@ static void GenerateSounds()
 //		soundPlayerExplosion,
 //		soundPause
 
-//	  sfx[0].tune = tuneGameStart;
-//	  sfx[0].tuneLength = SOUND_GAMESTART_LENGTH / SAMPLES_PER_NOTE;
-//	  sfx[1].tune = tuneGameEnd;
-//	  sfx[1].tuneLength = SOUND_GAMEEND_LENGTH / SAMPLES_PER_NOTE;
-//	  sfx[2].tune = tuneGameEnd;
-//	  sfx[2].tuneLength = SOUND_GAMEEND_LENGTH / SAMPLES_PER_NOTE;
+	  sfx[0].recipes = sfxShot;
+	  sfx[0].recipeCount = 3;
+	  sfx[1].recipes = sfxGameStart;
+	  sfx[1].recipeCount = 13;
 }
 
 
@@ -143,7 +153,16 @@ void SoundCallback()
 		osc.samplesLeft -= 1;
 		if (osc.samplesLeft == 0)
 		{
-			osc.active = 0;
+			osc.recipeCurrent++;
+			if (osc.recipeCurrent >= osc.sfx->recipeCount)
+			{
+				osc.active = 0;
+			}
+			else
+			{
+				osc.frequency = osc.sfx->recipes[osc.recipeCurrent].frequency;
+				osc.samplesLeft = osc.sfx->recipes[osc.recipeCurrent].durationSec * SAMPLE_RATE;
+			}
 		}
 	}
 
@@ -160,10 +179,19 @@ void PlaySound(enum SoundType sound)
 	if (osc.active)
 		return;
 
-	struct Recipe recipe = sfxShot[0];
+	if (sound == soundShot) {
+		osc.sfx = &sfx[0];
+	}
+	else if (sound == soundGameStart) {
+		osc.sfx = &sfx[1];
+	}
+	else {
+		return;
+	}
+	osc.recipeCurrent = 0;
 
-	osc.frequency = recipe.frequency;
-	osc.samplesLeft = recipe.durationSec * SAMPLE_RATE;
+	osc.frequency = osc.sfx->recipes[osc.recipeCurrent].frequency;
+	osc.samplesLeft = osc.sfx->recipes[osc.recipeCurrent].durationSec * SAMPLE_RATE;
 
 	osc.active = 1;
 
