@@ -29,15 +29,15 @@ const struct Recipe sfxGameEnd[7] = {
 };
 
 const struct Recipe sfxShot[3] = {
-		{ waveSquare, 1000, 0.05f },
-		{ waveSquare, 500, 0.05f },
-		{ waveSquare, 250, 0.05f }
+		{ waveSaw, 1000, 0.05f },
+		{ waveSaw, 500, 0.05f },
+		{ waveSaw, 250, 0.05f }
 };
 
 const struct Recipe sfxExplosion[3] = {
 		{ waveNoise, 1000, 0.05f },
-		{ waveNoise, 400, 0.075f },
-		{ waveNoise, 110, 0.05f },
+		{ waveNoise, 660, 0.075f },
+		{ waveNoise, 220, 0.05f },
 };
 
 const struct Recipe sfxDamage[3] = {
@@ -74,7 +74,7 @@ struct SFX sfx[7] = {0};
 uint16_t SquareWavetable[WAVETABLE_LENGTH];
 uint16_t SawWavetable[WAVETABLE_LENGTH];
 
-struct Oscilator osc = {0};
+struct Oscilator osc[4] = {0};
 
 static void GenerateSounds();
 
@@ -137,49 +137,59 @@ void SoundCallback()
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
 
 	uint16_t outputValue = 0;
-	if (osc.active) {
+	//uint8_t activeCount = 0;
+	for (uint8_t i = 0; i < 4; i++) {
 
-		osc.increment = osc.frequency * WAVETABLE_LENGTH / SAMPLE_RATE;
+		if (!osc[i].active) {
+			continue;
+		}
+		//activeCount++;
 
-		uint16_t prevIndex = (int)osc.phase;
+		osc[i].increment = osc[i].frequency * WAVETABLE_LENGTH / SAMPLE_RATE;
 
-		osc.phase += osc.increment;
+		uint16_t prevIndex = (int)osc[i].phase;
 
-		if (osc.phase >= WAVETABLE_LENGTH) {
-			osc.phase -= WAVETABLE_LENGTH;
+		osc[i].phase += osc[i].increment;
+
+		if (osc[i].phase >= WAVETABLE_LENGTH) {
+			osc[i].phase -= WAVETABLE_LENGTH;
 		}
 
-		uint16_t index = (int)osc.phase;
+		uint16_t index = (int)osc[i].phase;
 
-		switch (osc.sfx->recipes[osc.recipeCurrent].waveType)
+		switch (osc[i].sfx->recipes[osc[i].recipeCurrent].waveType)
 		{
 		case waveSquare:
-			outputValue = SquareWavetable[index];
+			outputValue += SquareWavetable[index];
 			break;
 		case waveNoise:
 			if (prevIndex != index) {
-				osc.cachedNoiseSample = GetNoiseSample();
+				osc[i].cachedNoiseSample = GetNoiseSample();
 			}
-			outputValue = osc.cachedNoiseSample;
+			outputValue += osc[i].cachedNoiseSample;
 			break;
 		case waveSaw:
-			outputValue = SawWavetable[index];
+			outputValue += SawWavetable[index];
 		}
 
-		osc.samplesLeft -= 1;
-		if (osc.samplesLeft == 0)
+		osc[i].samplesLeft -= 1;
+		if (osc[i].samplesLeft == 0)
 		{
-			osc.recipeCurrent++;
-			if (osc.recipeCurrent >= osc.sfx->recipeCount)
+			osc[i].recipeCurrent++;
+			if (osc[i].recipeCurrent >= osc[i].sfx->recipeCount)
 			{
-				osc.active = 0;
+				osc[i].active = 0;
 			}
 			else
 			{
-				osc.frequency = osc.sfx->recipes[osc.recipeCurrent].frequency;
-				osc.samplesLeft = osc.sfx->recipes[osc.recipeCurrent].durationSec * SAMPLE_RATE;
+				osc[i].frequency = osc[i].sfx->recipes[osc[i].recipeCurrent].frequency;
+				osc[i].samplesLeft = osc[i].sfx->recipes[osc[i].recipeCurrent].durationSec * SAMPLE_RATE;
 			}
 		}
+	}
+
+	if (outputValue > 0xFFF) {
+		outputValue = 0xFFF;
 	}
 
 	HAL_DAC_SetValue(config.hdac, config.channel, DAC_ALIGN_12B_R, outputValue);
@@ -192,17 +202,21 @@ void PlaySound(enum SoundType sound)
 		return;
 	}
 
-	if (osc.active)
-		return;
+	for (uint8_t i = 0; i < 4; i++) {
 
-	osc.sfx = &sfx[sound];
+		if (osc[i].active)
+			continue;
 
-	osc.recipeCurrent = 0;
+		osc[i].sfx = &sfx[sound];
 
-	osc.frequency = osc.sfx->recipes[osc.recipeCurrent].frequency;
-	osc.samplesLeft = osc.sfx->recipes[osc.recipeCurrent].durationSec * SAMPLE_RATE;
+		osc[i].recipeCurrent = 0;
 
-	osc.active = 1;
+		osc[i].frequency = osc[i].sfx->recipes[osc[i].recipeCurrent].frequency;
+		osc[i].samplesLeft = osc[i].sfx->recipes[osc[i].recipeCurrent].durationSec * SAMPLE_RATE;
+
+		osc[i].active = 1;
+		break;
+	}
 
 	return;
 }
