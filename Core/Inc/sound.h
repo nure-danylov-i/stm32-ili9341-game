@@ -32,7 +32,8 @@ enum SoundType
 
 enum WaveType {
 	waveSquare = 0,
-	waveNoise
+	waveNoise,
+	waveSaw,
 };
 
 struct Recipe {
