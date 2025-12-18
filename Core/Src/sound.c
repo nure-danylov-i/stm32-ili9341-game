@@ -134,8 +134,6 @@ static uint16_t GetNoiseSample()
 
 void SoundCallback()
 {
-	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
-
 	uint16_t outputValue = 0;
 	//uint8_t activeCount = 0;
 	for (uint8_t i = 0; i < 4; i++) {
@@ -166,7 +164,7 @@ void SoundCallback()
 			if (prevIndex != index) {
 				osc[i].cachedNoiseSample = GetNoiseSample();
 			}
-			outputValue += osc[i].cachedNoiseSample;
+			outputValue = osc[i].cachedNoiseSample;
 			break;
 		case waveSaw:
 			outputValue += SawWavetable[index];
