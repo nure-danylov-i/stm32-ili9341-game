@@ -55,13 +55,20 @@ const uint16_t tunePause[14] = {
 };
 
 const struct Recipe sfxGameStart[13] = {
-		{ waveSquare, 200, 0.1 }, {waveSquare, 0, 0.025},
-		{ waveSquare, 400, 0.1 }, {waveSquare, 0, 0.025},
-		{ waveSquare, 500, 0.1 }, {waveSquare, 0, 0.025},
-		{ waveSquare, 200, 0.1 }, {waveSquare, 0, 0.025},
-		{ waveSquare, 400, 0.1 }, {waveSquare, 0, 0.025},
-		{ waveSquare, 500, 0.1 }, {waveSquare, 0, 0.025},
-		{ waveSquare, 800, 0.25 }
+		{ waveSquare, 200, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 400, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 500, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 200, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 400, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 500, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 800, 0.25f }
+};
+
+const struct Recipe sfxGameEnd[7] = {
+		{ waveSquare, 500, 0.1f }, {waveSquare, 0, 0.025f },
+		{ waveSquare, 500, 0.1f }, {waveSquare, 0, 0.025f },
+		{ waveSquare, 500, 0.1f }, {waveSquare, 0, 0.025f },
+		{ waveSquare, 300, 0.625f }
 };
 
 const struct Recipe sfxShot[3] = {
@@ -70,7 +77,40 @@ const struct Recipe sfxShot[3] = {
 		{ waveSquare, 250, 0.05f }
 };
 
-struct SFX sfx[2] = {0};
+const struct Recipe sfxExplosion[1] = {
+		{ waveNoise, 1, 0.125f },
+};
+
+const struct Recipe sfxDamage[3] = {
+		{ waveSquare, 330, 0.05f },
+		{ waveSquare, 0, 0.05f },
+		{ waveSquare, 330, 0.05f },
+};
+
+const struct Recipe sfxPickup[5] = {
+		{ waveSquare, 400, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 600, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 800, 0.15f },
+};
+
+const struct Recipe sfxPlayerExplosion[7] = {
+		{ waveNoise, 1, 0.125f },
+		{ waveNoise, 100, 0.125f },
+		{ waveSquare, 200, 0.025f},
+		{ waveNoise, 200, 0.025f},
+		{ waveSquare, 200, 0.025f},
+		{ waveNoise, 200, 0.025f},
+		{ waveSquare, 200, 0.025f},
+};
+
+const struct Recipe sfxPause[7] = {
+		{ waveSquare, 1000, 0.05f }, {waveSquare, 0, 0.05f },
+		{ waveSquare, 800, 0.05f }, {waveSquare, 0, 0.05f },
+		{ waveSquare, 1000, 0.05f }, {waveSquare, 0, 0.05f },
+		{ waveSquare, 800, 0.05f },
+};
+
+struct SFX sfx[7] = {0};
 
 //uint16_t soundWaveformShot[SOUND_SHOT_LENGTH];
 //uint16_t soundWaveformPause[SOUND_PAUSE_LENGTH];
@@ -127,10 +167,22 @@ static void GenerateSounds()
 //		soundPlayerExplosion,
 //		soundPause
 
-	  sfx[0].recipes = sfxShot;
-	  sfx[0].recipeCount = 3;
-	  sfx[1].recipes = sfxGameStart;
-	  sfx[1].recipeCount = 13;
+	  sfx[0].recipes = sfxGameStart;
+	  sfx[0].recipeCount = 13;
+	  sfx[1].recipes = sfxGameEnd;
+	  sfx[1].recipeCount = 7;
+	  sfx[2].recipes = sfxShot;
+	  sfx[2].recipeCount = 3;
+	  sfx[3].recipes = sfxExplosion;
+	  sfx[3].recipeCount = 1;
+	  sfx[4].recipes = sfxDamage;
+	  sfx[4].recipeCount = 3;
+	  sfx[5].recipes = sfxPickup;
+	  sfx[5].recipeCount = 5;
+	  sfx[6].recipes = sfxPlayerExplosion;
+	  sfx[6].recipeCount = 7;
+	  sfx[7].recipes = sfxPause;
+	  sfx[7].recipeCount = 7;
 }
 
 
@@ -181,15 +233,8 @@ void PlaySound(enum SoundType sound)
 	if (osc.active)
 		return;
 
-	if (sound == soundShot) {
-		osc.sfx = &sfx[0];
-	}
-	else if (sound == soundGameStart) {
-		osc.sfx = &sfx[1];
-	}
-	else {
-		return;
-	}
+	osc.sfx = &sfx[sound];
+
 	osc.recipeCurrent = 0;
 
 	osc.frequency = osc.sfx->recipes[osc.recipeCurrent].frequency;
