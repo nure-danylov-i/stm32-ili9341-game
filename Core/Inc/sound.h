@@ -54,8 +54,11 @@ struct Oscilator {
 	float increment;
 	uint8_t active;
 	uint32_t samplesLeft;
+
 	struct SFX *sfx;
 	uint16_t recipeCurrent;
+
+	uint16_t cachedNoiseSample;
 };
 
 uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *htim);

@@ -34,8 +34,10 @@ const struct Recipe sfxShot[3] = {
 		{ waveSquare, 250, 0.05f }
 };
 
-const struct Recipe sfxExplosion[1] = {
-		{ waveNoise, 1, 0.125f },
+const struct Recipe sfxExplosion[3] = {
+		{ waveNoise, 1000, 0.05f },
+		{ waveNoise, 400, 0.075f },
+		{ waveNoise, 110, 0.05f },
 };
 
 const struct Recipe sfxDamage[3] = {
@@ -51,13 +53,13 @@ const struct Recipe sfxPickup[5] = {
 };
 
 const struct Recipe sfxPlayerExplosion[7] = {
-		{ waveNoise, 1, 0.125f },
-		{ waveNoise, 100, 0.125f },
+		{ waveNoise, 1000, 0.125f },
+		{ waveNoise, 400, 0.125f },
 		{ waveSquare, 200, 0.025f},
 		{ waveNoise, 200, 0.025f},
 		{ waveSquare, 200, 0.025f},
-		{ waveNoise, 200, 0.025f},
-		{ waveSquare, 200, 0.025f},
+		{ waveNoise, 100, 0.025f},
+		{ waveSquare, 100, 0.025f},
 };
 
 const struct Recipe sfxPause[7] = {
@@ -70,7 +72,6 @@ const struct Recipe sfxPause[7] = {
 struct SFX sfx[7] = {0};
 
 uint16_t SquareWavetable[WAVETABLE_LENGTH];
-uint16_t NoiseWavetable[WAVETABLE_LENGTH];
 uint16_t SawWavetable[WAVETABLE_LENGTH];
 
 enum SoundType previousSound = soundGameStart;
@@ -106,7 +107,6 @@ static void GenerateSounds()
     for (uint16_t i = 0; i < WAVETABLE_LENGTH; i++)
     {
     	SquareWavetable[i] = (i < (WAVETABLE_LENGTH >> 1)) ? 0 : 0xFFF;
-    	NoiseWavetable[i] = 2048 + rand() % 2047;
     	SawWavetable[i] = (float)i / WAVETABLE_LENGTH * 4096;
     }
 
@@ -118,7 +118,7 @@ static void GenerateSounds()
     sfx[2].recipes = sfxShot;
     sfx[2].recipeCount = 3;
     sfx[3].recipes = sfxExplosion;
-    sfx[3].recipeCount = 1;
+    sfx[3].recipeCount = 3;
     sfx[4].recipes = sfxDamage;
     sfx[4].recipeCount = 3;
     sfx[5].recipes = sfxPickup;
@@ -130,6 +130,11 @@ static void GenerateSounds()
 
 }
 
+static uint16_t GetNoiseSample()
+{
+	return rand() % 4096;
+}
+
 void SoundCallback()
 {
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
@@ -139,22 +144,29 @@ void SoundCallback()
 
 		osc.increment = osc.frequency * WAVETABLE_LENGTH / SAMPLE_RATE;
 
-		int index = (int)osc.phase;
+		uint16_t prevIndex = (int)osc.phase;
+
+		osc.phase += osc.increment;
+
+		if (osc.phase >= WAVETABLE_LENGTH) {
+			osc.phase -= WAVETABLE_LENGTH;
+		}
+
+		uint16_t index = (int)osc.phase;
+
 		switch (osc.sfx->recipes[osc.recipeCurrent].waveType)
 		{
 		case waveSquare:
 			outputValue = SquareWavetable[index];
 			break;
 		case waveNoise:
-			outputValue = NoiseWavetable[index];
+			if (prevIndex != index) {
+				osc.cachedNoiseSample = GetNoiseSample();
+			}
+			outputValue = osc.cachedNoiseSample;
 			break;
 		case waveSaw:
 			outputValue = SawWavetable[index];
-		}
-		osc.phase += osc.increment;
-
-		if (osc.phase >= WAVETABLE_LENGTH) {
-			osc.phase -= WAVETABLE_LENGTH;
 		}
 
 		osc.samplesLeft -= 1;
