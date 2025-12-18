@@ -74,8 +74,6 @@ struct SFX sfx[7] = {0};
 uint16_t SquareWavetable[WAVETABLE_LENGTH];
 uint16_t SawWavetable[WAVETABLE_LENGTH];
 
-enum SoundType previousSound = soundGameStart;
-
 struct Oscilator osc = {0};
 
 static void GenerateSounds();
@@ -127,7 +125,6 @@ static void GenerateSounds()
     sfx[6].recipeCount = 7;
     sfx[7].recipes = sfxPause;
     sfx[7].recipeCount = 7;
-
 }
 
 static uint16_t GetNoiseSample()
@@ -208,6 +205,4 @@ void PlaySound(enum SoundType sound)
 	osc.active = 1;
 
 	return;
-
-//	previousSound = sound;
 }
