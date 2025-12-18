@@ -261,12 +261,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		}
 		if (__HAL_TIM_GET_FLAG(htim, TIM_FLAG_UPDATE))
 		{
-			UART_Printf("Timer overrun - UpdateGame() too slow!\r\n");
+			UART_Printf("TIM6 overrun - UpdateGame() too slow!\r\n");
 		}
 	}
 	else if (htim->Instance == TIM7)
 	{
 		SoundCallback();
+
+		if (__HAL_TIM_GET_FLAG(htim, TIM_FLAG_UPDATE))
+		{
+			UART_Printf("TIM7 overrun - SoundCallback() too slow!\r\n");
+		}
 	}
 }
 
