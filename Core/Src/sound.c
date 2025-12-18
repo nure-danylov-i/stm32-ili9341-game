@@ -197,7 +197,15 @@ void SoundCallback()
 		osc.increment = osc.frequency * WAVETABLE_LENGTH / SAMPLE_RATE;
 
 		int index = (int)osc.phase;
-		outputValue = SquareWavetable[index];
+		switch (osc.sfx->recipes[osc.recipeCurrent].waveType)
+		{
+		case waveSquare:
+			outputValue = SquareWavetable[index];
+			break;
+		case waveNoise:
+			outputValue = NoiseWavetable[index];
+			break;
+		}
 		osc.phase += osc.increment;
 
 		if (osc.phase >= WAVETABLE_LENGTH) {
