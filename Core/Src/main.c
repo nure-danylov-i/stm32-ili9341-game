@@ -1018,11 +1018,14 @@ void DrawButton(uint16_t y, char str[], uint8_t pressed)
 
 uint8_t WaitForButton(uint16_t y)
 {
-	if (ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
+	GPIO_PinState joyButtonState = HAL_GPIO_ReadPin(JOY_BUTTON_GPIO_Port, JOY_BUTTON_Pin);
+	if ((ili9341_touch_coordinate(lcd, &touch_x, &touch_y) == itpPressed)
+			|| (joyButtonState == GPIO_PIN_RESET))
 	{
 		touch_y = 320 - touch_y;
 		touch_x -= 48;
-		if (touch_x > 55 && touch_x < 185 && touch_y > y && touch_y < y + 38)
+		if ((touch_x > 55 && touch_x < 185 && touch_y > y && touch_y < y + 38)
+				|| (joyButtonState == GPIO_PIN_RESET))
 		{
 			return 1;
 		}
@@ -1588,6 +1591,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : JOY_BUTTON_Pin */
+  GPIO_InitStruct.Pin = JOY_BUTTON_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(JOY_BUTTON_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB6 */
   GPIO_InitStruct.Pin = GPIO_PIN_6;
