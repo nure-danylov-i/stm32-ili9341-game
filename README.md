@@ -8,6 +8,8 @@
 
 This device was created as part of a thesis titled "An interactive game for STM32 microcontrollers using a graphical display".
 
+Dev board used is STM32 NUCLEO-F303RE.
+
 The game is a classic space shooter where you fight enemies and get score points.
 
 ![gameplay](./extra/images/photo_gameplay.jpg)
