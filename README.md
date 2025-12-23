@@ -15,10 +15,11 @@ The game is a classic space shooter where you fight enemies and get score points
 Features:
 - Smooth 25 FPS gameplay
 - Touch or joystick-based controls
-- Sound effects
+- Sound effects (wavetable synthesis)
 - Game difficulty increases over time
 - 3 different types of eneimes
 - Highscores (stored in RAM)
+- Blue button on the board pauses the game
 
 ## Schematic
 
