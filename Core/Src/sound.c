@@ -11,59 +11,71 @@ struct SoundConfig
 
 static struct SoundConfig config = {0};
 
-const uint16_t tuneGameEnd[40] = {
-    500, 500, 500, 500, 0,
-    500, 500, 500, 500, 0,
-    500, 500, 500, 500, 0,
-    300, 300, 300, 300, 300,
-    300, 300, 300, 300, 300,
-    300, 300, 300, 300, 300,
-    300, 300, 300, 300, 300,
-    300, 300, 300, 300, 300,
+const struct Recipe sfxGameStart[13] = {
+		{ waveSaw, 200, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSaw, 400, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSaw, 500, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSaw, 200, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSaw, 400, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSaw, 500, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSaw, 800, 0.25f }
 };
 
-const uint16_t tuneGameStart[40] = {
-    200, 200, 200, 200, 0,
-    400, 400, 400, 400, 0,
-    500, 500, 500, 500, 0,
-    200, 200, 200, 200, 0,
-    400, 400, 400, 400, 0,
-    500, 500, 500, 500, 0,
-    800, 800, 800, 800, 800,
-    800, 800, 800, 800, 800,
+const struct Recipe sfxGameEnd[7] = {
+		{ waveSquare, 500, 0.1f }, {waveSquare, 0, 0.025f },
+		{ waveSquare, 500, 0.1f }, {waveSquare, 0, 0.025f },
+		{ waveSquare, 500, 0.1f }, {waveSquare, 0, 0.025f },
+		{ waveSaw, 300, 0.625f }
 };
 
-const uint16_t tunePickup[20] = {
-    400, 400, 400, 400, 0,
-    600, 600, 600, 600, 0,
-    800, 800, 800, 800, 800,
-	800, 0, 0, 0, 0,
+const struct Recipe sfxShot[3] = {
+		{ waveSaw, 1000, 0.05f },
+		{ waveSaw, 500, 0.05f },
+		{ waveSaw, 250, 0.05f }
 };
 
-const uint16_t tuneShot[6] = {
-    1000, 1000, 500, 500, 250, 250,
+const struct Recipe sfxExplosion[3] = {
+		{ waveNoise, 1000, 0.05f },
+		{ waveNoise, 660, 0.075f },
+		{ waveNoise, 220, 0.05f },
 };
 
-const uint16_t tuneDamage[6] = {
-    330, 330, 0, 0, 330, 330,
+const struct Recipe sfxDamage[3] = {
+		{ waveSquare, 330, 0.05f },
+		{ waveSquare, 0, 0.05f },
+		{ waveSquare, 330, 0.05f },
 };
 
-const uint16_t tunePause[14] = {
-    1000, 1000, 0, 0, 800, 800, 0, 0,
-	1000, 1000, 0, 0, 800, 800
+const struct Recipe sfxPickup[5] = {
+		{ waveSquare, 400, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 600, 0.1f }, { waveSquare, 0, 0.025f },
+		{ waveSquare, 800, 0.15f },
 };
 
-uint16_t soundWaveformShot[SOUND_SHOT_LENGTH];
-uint16_t soundWaveformPause[SOUND_PAUSE_LENGTH];
-uint16_t soundWaveformExplosion[SOUND_EXPLOSION_LENGTH];
-uint16_t soundWaveformDamage[SOUND_DAMAGE_LENGTH];
-uint16_t soundWavefromGameStart[SOUND_GAMESTART_LENGTH];
-uint16_t soundWaveformGameEnd[SOUND_GAMEEND_LENGTH];
-uint16_t soundWaveformPickup[SOUND_PICKUP_LENGTH];
+const struct Recipe sfxPlayerExplosion[7] = {
+		{ waveNoise, 1000, 0.125f },
+		{ waveNoise, 400, 0.125f },
+		{ waveSquare, 200, 0.025f},
+		{ waveNoise, 200, 0.025f},
+		{ waveSquare, 200, 0.025f},
+		{ waveNoise, 100, 0.025f},
+		{ waveSquare, 100, 0.025f},
+};
 
-enum SoundType previousSound = soundGameStart;
+const struct Recipe sfxPause[7] = {
+		{ waveSquare, 1000, 0.05f }, {waveSquare, 0, 0.05f },
+		{ waveSquare, 800, 0.05f }, {waveSquare, 0, 0.05f },
+		{ waveSquare, 1000, 0.05f }, {waveSquare, 0, 0.05f },
+		{ waveSquare, 800, 0.05f },
+};
 
-static void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length);
+struct SFX sfx[7] = {0};
+
+uint16_t SquareWavetable[WAVETABLE_LENGTH];
+uint16_t SawWavetable[WAVETABLE_LENGTH];
+
+struct Oscilator osc[4] = {0};
+
 static void GenerateSounds();
 
 uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *htim)
@@ -79,54 +91,106 @@ uint8_t InitSound(DAC_HandleTypeDef *hdac, uint32_t channel, TIM_HandleTypeDef *
 
 	GenerateSounds();
 
+	HAL_DAC_Start(config.hdac, config.channel);
+	HAL_TIM_Base_Start_IT(config.htim);
+
 	config.init = 1;
 	return 1;
 }
 
-static void GenerateWaveform(const uint16_t *tune, uint16_t *waveform, unsigned int length)
-{
-	  for (int i = 0; i < length; i++)
-	  {
-	      int idx = i / 200;
-	      int freq = tune[idx];
-
-	      if (freq == 0) {
-	    	  waveform[i] = 0;
-	    	  continue;
-	      }
-
-	      if ((i / (8000 / freq / 2) ) % 2 == 0)
-	      {
-	    	  waveform[i] = 4095;
-	      }
-	      else
-	    	  waveform[i] = 0;
-	  }
-
-}
-
 static void GenerateSounds()
 {
-	  for (int i = 0; i < SOUND_EXPLOSION_LENGTH; i++)
-	  {
-		  soundWaveformExplosion[i] = rand() % 4095;
+    // Fill in the wavetables
+	srand(1234);
+    for (uint16_t i = 0; i < WAVETABLE_LENGTH; i++)
+    {
+    	SquareWavetable[i] = (i < (WAVETABLE_LENGTH >> 1)) ? 0 : 0xFFF;
+    	SawWavetable[i] = (float)i / WAVETABLE_LENGTH * 4096;
+    }
 
-		  if (i > 1000)
-		  {
-			  soundWaveformExplosion[i] = soundWaveformExplosion[i] * 3 / 4;
-			  if (i > 2000)
-				  soundWaveformExplosion[i] = soundWaveformExplosion[i] * 3 / 4;
-			  if ((i / 20) % 2 == 0)
-				  soundWaveformExplosion[i] = 0;
-		  }
-	  }
+    // Assign recipe arrays to SFX structs
+    sfx[0].recipes = sfxGameStart;
+    sfx[0].recipeCount = 13;
+    sfx[1].recipes = sfxGameEnd;
+    sfx[1].recipeCount = 7;
+    sfx[2].recipes = sfxShot;
+    sfx[2].recipeCount = 3;
+    sfx[3].recipes = sfxExplosion;
+    sfx[3].recipeCount = 3;
+    sfx[4].recipes = sfxDamage;
+    sfx[4].recipeCount = 3;
+    sfx[5].recipes = sfxPickup;
+    sfx[5].recipeCount = 5;
+    sfx[6].recipes = sfxPlayerExplosion;
+    sfx[6].recipeCount = 7;
+    sfx[7].recipes = sfxPause;
+    sfx[7].recipeCount = 7;
+}
 
-	  GenerateWaveform(tuneShot, soundWaveformShot, SOUND_SHOT_LENGTH);
-	  GenerateWaveform(tuneDamage, soundWaveformDamage, SOUND_DAMAGE_LENGTH);
-	  GenerateWaveform(tunePickup, soundWaveformPickup, SOUND_PICKUP_LENGTH);
-	  GenerateWaveform(tuneGameStart, soundWavefromGameStart, SOUND_GAMESTART_LENGTH);
-	  GenerateWaveform(tuneGameEnd, soundWaveformGameEnd, SOUND_GAMEEND_LENGTH);
-	  GenerateWaveform(tunePause, soundWaveformPause, SOUND_PAUSE_LENGTH);
+static uint16_t GetNoiseSample()
+{
+	return rand() % 4096;
+}
+
+void SoundCallback()
+{
+	uint16_t outputValue = 0;
+	//uint8_t activeCount = 0;
+	for (uint8_t i = 0; i < 4; i++) {
+
+		if (!osc[i].active) {
+			continue;
+		}
+		//activeCount++;
+
+		osc[i].increment = osc[i].frequency * WAVETABLE_LENGTH / SAMPLE_RATE;
+
+		uint16_t prevIndex = (int)osc[i].phase;
+
+		osc[i].phase += osc[i].increment;
+
+		if (osc[i].phase >= WAVETABLE_LENGTH) {
+			osc[i].phase -= WAVETABLE_LENGTH;
+		}
+
+		uint16_t index = (int)osc[i].phase;
+
+		switch (osc[i].sfx->recipes[osc[i].recipeCurrent].waveType)
+		{
+		case waveSquare:
+			outputValue += SquareWavetable[index];
+			break;
+		case waveNoise:
+			if (prevIndex != index) {
+				osc[i].cachedNoiseSample = GetNoiseSample();
+			}
+			outputValue = osc[i].cachedNoiseSample;
+			break;
+		case waveSaw:
+			outputValue += SawWavetable[index];
+		}
+
+		osc[i].samplesLeft -= 1;
+		if (osc[i].samplesLeft == 0)
+		{
+			osc[i].recipeCurrent++;
+			if (osc[i].recipeCurrent >= osc[i].sfx->recipeCount)
+			{
+				osc[i].active = 0;
+			}
+			else
+			{
+				osc[i].frequency = osc[i].sfx->recipes[osc[i].recipeCurrent].frequency;
+				osc[i].samplesLeft = osc[i].sfx->recipes[osc[i].recipeCurrent].durationSec * SAMPLE_RATE;
+			}
+		}
+	}
+
+	if (outputValue > 0xFFF) {
+		outputValue = 0xFFF;
+	}
+
+	HAL_DAC_SetValue(config.hdac, config.channel, DAC_ALIGN_12B_R, outputValue);
 }
 
 void PlaySound(enum SoundType sound)
@@ -136,40 +200,21 @@ void PlaySound(enum SoundType sound)
 		return;
 	}
 
-	if (!(sound == soundShot || previousSound == soundPlayerExplosion))
-	{
-		HAL_DAC_Stop_DMA(config.hdac, config.channel);
-		HAL_TIM_Base_Stop(config.htim);
+	for (uint8_t i = 0; i < 4; i++) {
+
+		if (osc[i].active)
+			continue;
+
+		osc[i].sfx = &sfx[sound];
+
+		osc[i].recipeCurrent = 0;
+
+		osc[i].frequency = osc[i].sfx->recipes[osc[i].recipeCurrent].frequency;
+		osc[i].samplesLeft = osc[i].sfx->recipes[osc[i].recipeCurrent].durationSec * SAMPLE_RATE;
+
+		osc[i].active = 1;
+		break;
 	}
 
-	switch(sound)
-	{
-	case soundShot:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformShot, SOUND_SHOT_LENGTH, DAC_ALIGN_12B_R);
-		break;
-	case soundExplosion:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformExplosion, SOUND_EXPLOSION_LENGTH / 3, DAC_ALIGN_12B_R);
-		break;
-	case soundPlayerExplosion:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformExplosion, SOUND_EXPLOSION_LENGTH, DAC_ALIGN_12B_R);
-		break;
-	case soundDamage:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformDamage, SOUND_DAMAGE_LENGTH, DAC_ALIGN_12B_R);
-		break;
-	case soundGameStart:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWavefromGameStart, SOUND_GAMESTART_LENGTH, DAC_ALIGN_12B_R);
-		break;
-	case soundGameEnd:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformGameEnd, SOUND_GAMEEND_LENGTH, DAC_ALIGN_12B_R);
-		break;
-	case soundPickup:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformPickup, SOUND_PICKUP_LENGTH, DAC_ALIGN_12B_R);
-		break;
-	case soundPause:
-		HAL_DAC_Start_DMA(config.hdac, config.channel, (uint32_t*)soundWaveformPause, SOUND_PAUSE_LENGTH, DAC_ALIGN_12B_R);
-		break;
-	}
-	HAL_TIM_Base_Start(config.htim);
-	previousSound = sound;
-
+	return;
 }
